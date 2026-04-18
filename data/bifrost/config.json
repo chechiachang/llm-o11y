@@ -1,0 +1,52 @@
+{
+  "providers": {
+    "azure": {
+      "keys": [
+        {
+          "name": "azure openai",
+          "value": "env.AZURE_OPENAI_API_KEY",
+          "models": [],
+          "weight": 1.0,
+          "azure_key_config": {
+            "endpoint": "env.AZURE_ENDPOINT",
+            "deployments": {
+              "gpt-4.1": "gpt-4.1",
+              "gpt-5.1-codex-mini": "gpt-5.1-codex-mini",
+              "gpt-5.3-codex": "gpt-5.3-codex",
+              "gpt-5.4-nano": "gpt-5.4-mini",
+              "gpt-5.4-mini": "gpt-5.4-mini",
+              "gpt-5.4": "gpt-5.4",
+              "gpt-5.4-pro": "gpt-5.4-pro"
+            }
+          }
+        }
+      ]
+    },
+    "openai": {
+      "keys": [
+        {
+          "name": "openai-key",
+          "value": "env.OPENAI_API_KEY",
+          "models": ["*"],
+          "weight": 1.0
+        }
+      ]
+    }
+  },
+  "plugins": [
+    {
+      "enabled": true,
+      "name": "otel",
+      "config": {
+        "service_name": "bifrost",
+        "collector_url": "http://langfuse-web:3000/api/public/otel/v1/traces",
+        "trace_type": "genai_extension",
+        "protocol": "http",
+        "headers": {
+          "Authorization": "Basic cGstMDAwMDAwMDA6c2stMDAwMDAwMDA=",
+          "x-langfuse-ingestion-version": "4"
+        }
+      }
+    }
+  ]
+}
