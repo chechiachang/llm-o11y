@@ -1,0 +1,21 @@
+{
+  "llmConnections": [
+    {
+      "provider": "azure",
+      "adapter": "azure",
+      "secretKey": "env:AZURE_OPENAI_API_KEY",
+      "baseURL": "https://your-resource.openai.azure.com/openai/deployments",
+      "withDefaultModels": true,
+      "customModels": ["azure/gpt-5.4-mini"]
+    }
+  ],
+  "evaluator": {
+    "scoreConfig": {
+      "name": "llm_judge_correctness",
+      "dataType": "NUMERIC",
+      "minValue": 0,
+      "maxValue": 1,
+      "description": "Binary correctness score produced by managed LLM-as-a-judge"
+    }
+  }
+}

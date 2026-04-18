@@ -29,3 +29,32 @@ Default Langfuse project keys in docker-compose.yml:
 ```
 
 Bifrost OTEL export is configured in `data/bifrost/config.json` under `plugins[].name = "otel"`.
+
+## Bootstrap Langfuse setup from config
+
+Copy the example and edit:
+
+```bash
+cp data/langfuse/bootstrap.example.json data/langfuse/bootstrap.json
+```
+
+Set API keys for Langfuse Public API auth (project keys):
+
+```bash
+export LANGFUSE_BASE_URL=http://localhost:3000
+export LANGFUSE_PUBLIC_KEY=pk-00000000
+export LANGFUSE_SECRET_KEY=sk-00000000
+./scripts/bootstrap-langfuse-connections.sh data/langfuse/bootstrap.json
+./scripts/bootstrap-langfuse-evaluator.sh data/langfuse/bootstrap.json
+```
+
+Note: the evaluator script bootstraps score config only. Managed LLM-as-a-judge evaluator definitions are created in Langfuse UI.
+
+Default example connection is `azure`:
+- `adapter`: `azure`
+- `baseURL`: set to your azure resource URL
+- `customModels`: `gpt-5.4-mini`
+- `secretKey`: optional for local Bifrost. If omitted/unset, bootstrap script auto-uses `bifrost-noauth`.
+
+Important: Langfuse LLM connections reject `localhost` and private-network base URLs.
+If you see `Invalid baseURL: Blocked hostname/IP`, expose Bifrost through a public HTTPS URL and use that URL in `baseURL`.
