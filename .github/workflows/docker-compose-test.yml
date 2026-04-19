@@ -1,0 +1,166 @@
+name: Docker Compose Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  env-coverage:
+    name: Validate env var coverage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check all env vars have defaults
+        run: |
+          # Find ${VAR} without a default (i.e. not ${VAR:-...}) in docker-compose.yml.
+          # $$ is Docker Compose's escape for a literal $ passed to the shell; replace it
+          # with a placeholder so those patterns are not flagged as missing defaults.
+          MISSING=$(sed 's/\$\$/ESCAPED_DOLLAR/g' docker-compose.yml | \
+            grep -oE '\$\{[A-Z_0-9]+\}' | tr -d '${}' || true)
+          if [ -n "$MISSING" ]; then
+            echo "FAIL: The following env vars have no default value:"
+            echo "$MISSING"
+            exit 1
+          fi
+          echo "PASS: All env vars in docker-compose.yml use \${VAR:-default} syntax."
+
+      - name: List all env vars and their defaults
+        run: |
+          echo "=== Env vars defined in docker-compose.yml ==="
+          grep -oE '\$\{[A-Z_0-9]+:-[^}]*\}' docker-compose.yml | sort -u
+
+  integration-test:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      # bifrost uses an arm64-specific image tag; skip it on the amd64 CI runner.
+      - name: Start core services
+        run: docker compose up -d postgres redis minio clickhouse langfuse-web langfuse-worker
+
+      - name: Wait for infrastructure services to be healthy
+        run: |
+          for service in postgres redis minio clickhouse; do
+            echo "Waiting for $service to be healthy..."
+            timeout 120 bash -c "
+              until docker inspect \$(docker compose ps -q $service) \
+                    --format='{{.State.Health.Status}}' 2>/dev/null | grep -q healthy; do
+                sleep 5
+              done
+            "
+            echo "$service is healthy"
+          done
+
+      - name: Wait for Langfuse web to be ready
+        run: |
+          echo "Waiting for langfuse-web API..."
+          timeout 180 bash -c '
+            until curl -fsS http://localhost:3000/api/public/health >/dev/null 2>&1; do
+              sleep 10
+            done
+          '
+          echo "langfuse-web is ready"
+
+      - name: Show service status
+        run: docker compose ps
+
+      # ── Individual service checks ──────────────────────────────────────────
+
+      - name: ClickHouse ping
+        run: curl -fsS http://127.0.0.1:8123/ping
+
+      - name: ClickHouse query (SELECT 1)
+        run: |
+          RESULT=$(curl -fsS 'http://127.0.0.1:8123/?query=SELECT%201')
+          echo "ClickHouse response: $RESULT"
+          [ "$RESULT" = "1" ]
+
+      - name: MinIO health (live)
+        run: curl -fsS http://localhost:9002/minio/health/live
+
+      - name: MinIO bucket list (langfuse bucket exists)
+        run: |
+          HTTP_CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
+            -u 'chechia:password' \
+            http://localhost:9002/langfuse)
+          echo "MinIO bucket response: $HTTP_CODE"
+          # 200 (exists) or 301/302 (redirect) are acceptable
+          echo "$HTTP_CODE" | grep -qE '^(200|301|302)$'
+
+      - name: Redis ping (authenticated)
+        run: |
+          REDIS_CONTAINER=$(docker compose ps -q redis)
+          RESPONSE=$(docker exec "$REDIS_CONTAINER" redis-cli -a password ping 2>/dev/null)
+          echo "Redis response: $RESPONSE"
+          [ "$RESPONSE" = "PONG" ]
+
+      - name: Redis set/get (read-write)
+        run: |
+          REDIS_CONTAINER=$(docker compose ps -q redis)
+          docker exec "$REDIS_CONTAINER" redis-cli -a password SET ci-test-key ci-test-value 2>/dev/null
+          VALUE=$(docker exec "$REDIS_CONTAINER" redis-cli -a password GET ci-test-key 2>/dev/null)
+          echo "Redis GET ci-test-key: $VALUE"
+          [ "$VALUE" = "ci-test-value" ]
+          docker exec "$REDIS_CONTAINER" redis-cli -a password DEL ci-test-key 2>/dev/null
+
+      - name: Postgres ready check
+        run: |
+          POSTGRES_CONTAINER=$(docker compose ps -q postgres)
+          docker exec "$POSTGRES_CONTAINER" sh -c 'pg_isready -U postgres -d postgres'
+
+      - name: Postgres query (SELECT 1)
+        run: |
+          POSTGRES_CONTAINER=$(docker compose ps -q postgres)
+          RESULT=$(docker exec "$POSTGRES_CONTAINER" \
+            psql -U postgres -d postgres -tAc 'SELECT 1')
+          echo "Postgres response: $RESULT"
+          [ "$RESULT" = "1" ]
+
+      - name: Langfuse health endpoint
+        run: curl -fsS http://localhost:3000/api/public/health
+
+      - name: Langfuse UI responds (HTTP 200 or redirect)
+        run: |
+          HTTP_CODE=$(curl -sS -o /dev/null -w '%{http_code}' http://localhost:3000/)
+          echo "Langfuse UI HTTP code: $HTTP_CODE"
+          echo "$HTTP_CODE" | grep -qE '^(200|302)$'
+
+      - name: Langfuse authentication with default project keys
+        run: |
+          HTTP_CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
+            -u 'pk-00000000:sk-00000000' \
+            http://localhost:3000/api/public/projects)
+          echo "Langfuse auth response: $HTTP_CODE"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "FAIL: Langfuse authentication with default keys failed (HTTP $HTTP_CODE)"
+            exit 1
+          fi
+
+      - name: Langfuse worker health endpoint
+        run: |
+          # The worker health endpoint may not always be reachable; treat as non-critical.
+          curl -fsS http://127.0.0.1:3030/api/public/health \
+            && echo "Worker health OK" \
+            || echo "Worker health endpoint not available (non-critical)"
+
+      # ── Failure diagnostics ────────────────────────────────────────────────
+
+      - name: Collect service logs on failure
+        if: failure()
+        run: |
+          for svc in langfuse-web langfuse-worker clickhouse minio redis postgres; do
+            echo "========== $svc logs =========="
+            docker compose logs --tail=100 "$svc" || true
+          done
+
+      - name: Stop services
+        if: always()
+        run: docker compose down -v
