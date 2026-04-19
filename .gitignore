@@ -1,3 +1,4 @@
 tmp/
 data/bifrost/**
 !data/bifrost/config.json
+data/langfuse/bootstrap.json
