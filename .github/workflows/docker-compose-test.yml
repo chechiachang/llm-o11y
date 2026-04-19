@@ -73,20 +73,32 @@ jobs:
         run: docker compose ps
 
       # ── Individual service checks ──────────────────────────────────────────
+      # All test steps use continue-on-error: true so every test always runs.
+      # The "Test Summary" step at the end fails the job if any test failed.
 
       - name: ClickHouse ping
+        id: test-clickhouse-ping
+        continue-on-error: true
         run: curl -fsS http://127.0.0.1:8123/ping
 
       - name: ClickHouse query (SELECT 1)
+        id: test-clickhouse-query
+        continue-on-error: true
         run: |
-          RESULT=$(curl -fsS 'http://127.0.0.1:8123/?query=SELECT%201')
+          RESULT=$(curl -fsS \
+            --user "${CLICKHOUSE_USER:-chechia}:${CLICKHOUSE_PASSWORD:-password}" \
+            'http://127.0.0.1:8123/?query=SELECT%201')
           echo "ClickHouse response: $RESULT"
           [ "$RESULT" = "1" ]
 
       - name: MinIO health (live)
+        id: test-minio-health
+        continue-on-error: true
         run: curl -fsS http://localhost:9002/minio/health/live
 
       - name: MinIO bucket list (langfuse bucket exists)
+        id: test-minio-bucket
+        continue-on-error: true
         run: |
           HTTP_CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
             -u 'chechia:password' \
@@ -96,6 +108,8 @@ jobs:
           echo "$HTTP_CODE" | grep -qE '^(200|301|302)$'
 
       - name: Redis ping (authenticated)
+        id: test-redis-ping
+        continue-on-error: true
         run: |
           REDIS_CONTAINER=$(docker compose ps -q redis)
           RESPONSE=$(docker exec "$REDIS_CONTAINER" redis-cli -a password ping 2>/dev/null)
@@ -103,6 +117,8 @@ jobs:
           [ "$RESPONSE" = "PONG" ]
 
       - name: Redis set/get (read-write)
+        id: test-redis-readwrite
+        continue-on-error: true
         run: |
           REDIS_CONTAINER=$(docker compose ps -q redis)
           docker exec "$REDIS_CONTAINER" redis-cli -a password SET ci-test-key ci-test-value 2>/dev/null
@@ -112,11 +128,15 @@ jobs:
           docker exec "$REDIS_CONTAINER" redis-cli -a password DEL ci-test-key 2>/dev/null
 
       - name: Postgres ready check
+        id: test-postgres-ready
+        continue-on-error: true
         run: |
           POSTGRES_CONTAINER=$(docker compose ps -q postgres)
           docker exec "$POSTGRES_CONTAINER" sh -c 'pg_isready -U postgres -d postgres'
 
       - name: Postgres query (SELECT 1)
+        id: test-postgres-query
+        continue-on-error: true
         run: |
           POSTGRES_CONTAINER=$(docker compose ps -q postgres)
           RESULT=$(docker exec "$POSTGRES_CONTAINER" \
@@ -125,15 +145,21 @@ jobs:
           [ "$RESULT" = "1" ]
 
       - name: Langfuse health endpoint
+        id: test-langfuse-health
+        continue-on-error: true
         run: curl -fsS http://localhost:3000/api/public/health
 
       - name: Langfuse UI responds (HTTP 200 or redirect)
+        id: test-langfuse-ui
+        continue-on-error: true
         run: |
           HTTP_CODE=$(curl -sS -o /dev/null -w '%{http_code}' http://localhost:3000/)
           echo "Langfuse UI HTTP code: $HTTP_CODE"
           echo "$HTTP_CODE" | grep -qE '^(200|302)$'
 
       - name: Langfuse authentication with default project keys
+        id: test-langfuse-auth
+        continue-on-error: true
         run: |
           HTTP_CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
             -u 'pk-00000000:sk-00000000' \
@@ -145,11 +171,50 @@ jobs:
           fi
 
       - name: Langfuse worker health endpoint
+        id: test-langfuse-worker
+        continue-on-error: true
         run: |
           # The worker health endpoint may not always be reachable; treat as non-critical.
           curl -fsS http://127.0.0.1:3030/api/public/health \
             && echo "Worker health OK" \
             || echo "Worker health endpoint not available (non-critical)"
+
+      # ── Test summary ──────────────────────────────────────────────────────
+      # Print pass/fail for every test and fail the job if any required test failed.
+
+      - name: Test summary
+        if: always()
+        run: |
+          FAILED=0
+          check() {
+            if [ "$2" = "success" ]; then
+              echo "  PASS  $1"
+            else
+              echo "  FAIL  $1"
+              FAILED=$((FAILED + 1))
+            fi
+          }
+          echo ""
+          echo "=== Integration test results ==="
+          check "ClickHouse ping"                   "${{ steps.test-clickhouse-ping.outcome }}"
+          check "ClickHouse query (SELECT 1)"       "${{ steps.test-clickhouse-query.outcome }}"
+          check "MinIO health"                      "${{ steps.test-minio-health.outcome }}"
+          check "MinIO bucket (langfuse)"           "${{ steps.test-minio-bucket.outcome }}"
+          check "Redis ping"                        "${{ steps.test-redis-ping.outcome }}"
+          check "Redis set/get"                     "${{ steps.test-redis-readwrite.outcome }}"
+          check "Postgres ready"                    "${{ steps.test-postgres-ready.outcome }}"
+          check "Postgres query (SELECT 1)"         "${{ steps.test-postgres-query.outcome }}"
+          check "Langfuse health"                   "${{ steps.test-langfuse-health.outcome }}"
+          check "Langfuse UI"                       "${{ steps.test-langfuse-ui.outcome }}"
+          check "Langfuse auth (default keys)"      "${{ steps.test-langfuse-auth.outcome }}"
+          # Worker health is non-critical — print but do not count as failure
+          echo "  INFO  Langfuse worker health: ${{ steps.test-langfuse-worker.outcome }}"
+          echo "================================"
+          if [ "$FAILED" -gt 0 ]; then
+            echo "$FAILED test(s) FAILED."
+            exit 1
+          fi
+          echo "All tests passed."
 
       # ── Failure diagnostics ────────────────────────────────────────────────
 
