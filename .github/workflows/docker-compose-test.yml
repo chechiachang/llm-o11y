@@ -94,18 +94,29 @@ jobs:
       - name: MinIO health (live)
         id: test-minio-health
         continue-on-error: true
-        run: curl -fsS http://localhost:9002/minio/health/live
+        run: |
+          echo "--- MinIO /minio/health/live ---"
+          curl -vS http://localhost:9002/minio/health/live 2>&1 || true
+          echo ""
+          echo "--- MinIO /minio/health/ready ---"
+          curl -vS http://localhost:9002/minio/health/ready 2>&1 || true
+          # Require liveness to pass
+          curl -fsS http://localhost:9002/minio/health/live
 
       - name: MinIO bucket list (langfuse bucket exists)
         id: test-minio-bucket
         continue-on-error: true
         run: |
-          HTTP_CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
-            -u 'chechia:password' \
-            http://localhost:9002/langfuse)
-          echo "MinIO bucket response: $HTTP_CODE"
-          # 200 (exists) or 301/302 (redirect) are acceptable
-          echo "$HTTP_CODE" | grep -qE '^(200|301|302)$'
+          MINIO_CONTAINER=$(docker compose ps -q minio)
+          echo "MinIO container ID: $MINIO_CONTAINER"
+          echo "--- mc alias list ---"
+          docker exec "$MINIO_CONTAINER" mc alias list 2>&1 || true
+          echo "--- mc ls local ---"
+          docker exec "$MINIO_CONTAINER" mc ls local 2>&1
+          echo "--- mc ls local/langfuse ---"
+          docker exec "$MINIO_CONTAINER" mc ls local/langfuse 2>&1
+          # Verify the langfuse bucket exists via mc
+          docker exec "$MINIO_CONTAINER" mc ls local/langfuse
 
       - name: Redis ping (authenticated)
         id: test-redis-ping
