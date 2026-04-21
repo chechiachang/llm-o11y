@@ -109,14 +109,17 @@ jobs:
         run: |
           MINIO_CONTAINER=$(docker compose ps -q minio)
           echo "MinIO container ID: $MINIO_CONTAINER"
-          echo "--- mc alias list ---"
-          docker exec "$MINIO_CONTAINER" mc alias list 2>&1 || true
-          echo "--- mc ls local ---"
-          docker exec "$MINIO_CONTAINER" mc ls local 2>&1
-          echo "--- mc ls local/langfuse ---"
-          docker exec "$MINIO_CONTAINER" mc ls local/langfuse 2>&1
-          # Verify the langfuse bucket exists via mc
-          docker exec "$MINIO_CONTAINER" mc ls local/langfuse
+          # Configure mc alias with credentials (the default 'local' alias has no creds)
+          docker exec "$MINIO_CONTAINER" mc alias set myminio \
+            http://localhost:9000 \
+            "${MINIO_ROOT_USER:-chechia}" \
+            "${MINIO_ROOT_PASSWORD:-password}" 2>&1
+          echo "--- mc ls myminio ---"
+          docker exec "$MINIO_CONTAINER" mc ls myminio 2>&1
+          echo "--- mc ls myminio/langfuse ---"
+          docker exec "$MINIO_CONTAINER" mc ls myminio/langfuse 2>&1
+          # Verify the langfuse bucket exists
+          docker exec "$MINIO_CONTAINER" mc ls myminio/langfuse
 
       - name: Redis ping (authenticated)
         id: test-redis-ping
