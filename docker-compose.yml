@@ -166,7 +166,6 @@ services:
 
   bifrost:
     image: maximhq/bifrost:v1.4.20-arm64
-    container_name: bifrost
     restart: unless-stopped
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
