@@ -39,12 +39,21 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+      AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      LANGFUSE_PUBLIC_KEY: pk-00000000
+      LANGFUSE_SECRET_KEY: sk-00000000
     steps:
       - uses: actions/checkout@v4
 
-      # bifrost uses an arm64-specific image tag; skip it on the amd64 CI runner.
+      - name: Enable QEMU (arm64 image support for bifrost)
+        uses: docker/setup-qemu-action@v3
+
+      # bifrost image is arm64-only; QEMU above enables emulation on amd64 CI.
       - name: Start core services
-        run: docker compose up -d postgres redis minio clickhouse langfuse-web langfuse-worker
+        run: docker compose up -d postgres redis minio clickhouse langfuse-web langfuse-worker bifrost
 
       - name: Wait for infrastructure services to be healthy
         run: |
@@ -69,8 +78,29 @@ jobs:
           '
           echo "langfuse-web is ready"
 
+      - name: Wait for Bifrost API to be ready
+        run: |
+          echo "Waiting for bifrost API..."
+          timeout 180 bash -c '
+            until curl -fsS http://localhost:8080/v1/models >/dev/null 2>&1; do
+              sleep 5
+            done
+          '
+          echo "bifrost is ready"
+
       - name: Show service status
         run: docker compose ps
+
+      - name: Required env for Bifrost/Langfuse E2E test
+        run: |
+          echo "Required env/secrets:"
+          echo "- AZURE_OPENAI_API_KEY"
+          echo "- AZURE_ENDPOINT"
+          echo "Optional alternative:"
+          echo "- OPENAI_API_KEY (if using openai provider in bifrost config)"
+          echo "Langfuse API auth used by test (defaults in this repo):"
+          echo "- LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY}"
+          echo "- LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY}"
 
       # ── Individual service checks ──────────────────────────────────────────
       # All test steps use continue-on-error: true so every test always runs.
@@ -193,6 +223,23 @@ jobs:
             && echo "Worker health OK" \
             || echo "Worker health endpoint not available (non-critical)"
 
+      - name: Bifrost -> real LLM call -> Langfuse observation verify
+        id: test-bifrost-langfuse-e2e
+        if: ${{ env.AZURE_OPENAI_API_KEY != '' && env.AZURE_ENDPOINT != '' }}
+        continue-on-error: true
+        env:
+          BIFROST_PROVIDER: azure
+          BIFROST_MODEL: azure/gpt-5.4-nano
+          BIFROST_BASE_URL: http://localhost:8080
+          LANGFUSE_BASE_URL: http://localhost:3000
+        run: ./scripts/test-bifrost-langfuse-e2e.sh
+
+      - name: Bifrost/Langfuse E2E skipped (missing Azure secrets)
+        if: ${{ !(env.AZURE_OPENAI_API_KEY != '' && env.AZURE_ENDPOINT != '') }}
+        run: |
+          echo "SKIP: Missing AZURE_OPENAI_API_KEY or AZURE_ENDPOINT."
+          echo "Set repo secrets to enable real LLM + Langfuse observation test."
+
       # ── Test summary ──────────────────────────────────────────────────────
       # Print pass/fail for every test and fail the job if any required test failed.
 
@@ -203,6 +250,16 @@ jobs:
           check() {
             if [ "$2" = "success" ]; then
               echo "  PASS  $1"
+            else
+              echo "  FAIL  $1"
+              FAILED=$((FAILED + 1))
+            fi
+          }
+          check_optional() {
+            if [ "$2" = "success" ]; then
+              echo "  PASS  $1"
+            elif [ "$2" = "skipped" ]; then
+              echo "  INFO  $1: skipped"
             else
               echo "  FAIL  $1"
               FAILED=$((FAILED + 1))
@@ -221,6 +278,7 @@ jobs:
           check "Langfuse health"                   "${{ steps.test-langfuse-health.outcome }}"
           check "Langfuse UI"                       "${{ steps.test-langfuse-ui.outcome }}"
           check "Langfuse auth (default keys)"      "${{ steps.test-langfuse-auth.outcome }}"
+          check_optional "Bifrost->LLM->Langfuse E2E" "${{ steps.test-bifrost-langfuse-e2e.outcome }}"
           # Worker health is non-critical — print but do not count as failure
           echo "  INFO  Langfuse worker health: ${{ steps.test-langfuse-worker.outcome }}"
           echo "================================"
@@ -235,7 +293,7 @@ jobs:
       - name: Collect service logs on failure
         if: failure()
         run: |
-          for svc in langfuse-web langfuse-worker clickhouse minio redis postgres; do
+          for svc in bifrost langfuse-web langfuse-worker clickhouse minio redis postgres; do
             echo "========== $svc logs =========="
             docker compose logs --tail=100 "$svc" || true
           done
