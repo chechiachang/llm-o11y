@@ -43,6 +43,7 @@ jobs:
       AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
       AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      BIFROST_PLATFORM: linux/arm64
       LANGFUSE_PUBLIC_KEY: pk-00000000
       LANGFUSE_SECRET_KEY: sk-00000000
     steps:
