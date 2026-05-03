@@ -16,7 +16,8 @@
               "gpt-5.4-nano": "gpt-5.4-mini",
               "gpt-5.4-mini": "gpt-5.4-mini",
               "gpt-5.4": "gpt-5.4",
-              "gpt-5.4-pro": "gpt-5.4-pro"
+              "gpt-5.4-pro": "gpt-5.4-pro",
+              "gpt-5.5": "gpt-5.5"
             }
           }
         }
@@ -27,7 +28,9 @@
         {
           "name": "openai-key",
           "value": "env.OPENAI_API_KEY",
-          "models": ["*"],
+          "models": [
+            "*"
+          ],
           "weight": 1.0
         }
       ]
@@ -48,5 +51,13 @@
         }
       }
     }
-  ]
+  ],
+  "mcp": {
+    "tool_manager_config": {
+      "disable_auto_tool_inject": true
+    }
+  },
+  "client": {
+    "mcp_disable_auto_tool_inject": true
+  }
 }
