@@ -12,3 +12,7 @@ All instructions and skills must be compact and extremely minimal.
 ## Index
 - `skills/docker.md`
 - `skills/docker-health.md`
+
+## Actions
+- `./actions` = issues found from observing LLM traces + observations and their corresponding actionable fixes.
+- Maintain action index in `./actions/README.md`.

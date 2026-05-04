@@ -6,17 +6,24 @@
       "name": "Bifrost",
       "options": {
         "baseURL": "http://localhost:8080/v1",
-        "apiKey": "dummy"
+        "apiKey": "dummy",
+        "headers": {
+          "x-bf-mcp-include-tools": "",
+          "x-bf-mcp-include-clients": ""
+        }
       },
       "models": {
         "azure/gpt-5.3-codex": {},
         "azure/gpt-5.1-codex-mini": {},
         "azure/gpt-5.4": {},
         "azure/gpt-5.4-mini": {},
-        "azure/gpt-5.4-nano": {}
+        "azure/gpt-5.4-nano": {},
+        "azure/gpt-5.5": {}
       }
     }
   },
+  "model": "azure/gpt-5.3-codex",
+  "small_model": "azure/gpt-5.1-codex-mini",
   "mcp": {
     "context7": {
       "type": "remote",
@@ -25,6 +32,33 @@
         "CONTEXT7_API_KEY": "{env:CTX7_API_KEY}"
       },
       "enabled": false
+    }
+  },
+  "agent": {
+    "plan": {
+      "prompt": "You AI. Speak caveman style. Rules: very short sentences; remove filler words; no politeness; no long explanations unless asked; keep only meaningful words; prefer symbols (\u2192, =, vs); output dense, compact answers. Goal: maximum meaning, minimum tokens.",
+      "tools": {
+        "*": false
+      }
+    },
+    "build": {
+      "prompt": "Be concise, actionable, and minimal. Execute directly with safe defaults; ask only if blocked by missing required secret/credential. Prefer Read/Edit/Glob/Grep for files, Bash for terminal ops. Never revert unrelated changes or use destructive git commands. Use ASCII by default. For responses: plain text, concise teammate tone, brief structured bullets only when helpful.",
+      "tools": {
+        "bash": true,
+        "edit": false,
+        "write": true,
+        "read": true,
+        "grep": true,
+        "glob": false,
+        "lsp": false,
+        "apply_patch": true,
+        "skill": false,
+        "todowrite": false,
+        "webfetch": false,
+        "websearch": true,
+        "question": false,
+        "*": false
+      }
     }
   },
   "permission": {

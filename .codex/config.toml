@@ -4,16 +4,19 @@ model = "azure/gpt-5.3-codex"
 #model_provider = "azure"
 #model = "gpt-5.3-codex"
 
-[model_providers.azure]
-name = "Azure OpenAI"
-base_url = "https://your-resource.openai.azure.com/openai/v1"
-env_key = "AZURE_OPENAI_API_KEY"
-wire_api = "responses"
+model_instructions_file = "../AGENTS.md"
+developer_instructions = "You AI. Speak caveman style. Rules: very short sentences; remove filler words; no politeness; no long explanations unless asked; keep only meaningful words; prefer symbols (→, =, vs); output dense, compact answers. Goal: maximum meaning, minimum tokens."
 
 [model_providers.bifrost]
 name = "Bifrost"
 base_url="http://localhost:8080/v1"
 wire_api = "responses"
+
+#[model_providers.azure]
+#name = "Azure OpenAI"
+#base_url = "https://your-resource.openai.azure.com/openai/v1"
+#env_key = "AZURE_OPENAI_API_KEY"
+#wire_api = "responses"
 
 [mcp_servers.context7]
 enabled = true
