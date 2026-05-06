@@ -5,7 +5,7 @@
 # External connections from other machines will not be able to reach these services directly.
 services:
   langfuse-worker:
-    image: docker.io/langfuse/langfuse-worker:3.169.0
+    image: docker.io/langfuse/langfuse-worker:3.172.1
     restart: always
     depends_on: &langfuse-depends-on
       postgres:
@@ -69,7 +69,7 @@ services:
       SMTP_CONNECTION_URL: ${SMTP_CONNECTION_URL:-}
 
   langfuse-web:
-    image: docker.io/langfuse/langfuse:3.169.0
+    image: docker.io/langfuse/langfuse:3.172.1
     restart: always
     depends_on: *langfuse-depends-on
     ports:
@@ -172,6 +172,8 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY:-}
       AZURE_ENDPOINT: ${AZURE_ENDPOINT:-}
+      LANGFUSE_OTEL_AUTH: ${LANGFUSE_OTEL_AUTH:-Basic cGstMDAwMDAwMDA6c2stMDAwMDAwMDA=}
+      LANGFUSE_OTEL_INGESTION_VERSION: ${LANGFUSE_OTEL_INGESTION_VERSION:-4}
     ports:
       - 8080:8080
     volumes:
