@@ -27,8 +27,7 @@ All instructions and skills must be compact and extremely minimal.
   - `docker compose up -d postgres redis minio clickhouse langfuse-web langfuse-worker bifrost`
   - `./scripts/test-bifrost-langfuse-e2e.sh`
 - Verify evaluator bootstrap/workflow:
-  - `./scripts/bootstrap-langfuse-evaluator.sh data/langfuse/bootstrap.example.json`
-  - `./scripts/verify-langfuse-llm-judge-workflow.sh data/langfuse/bootstrap.example.json`
+  - `./scripts/bootstrap-langfuse.sh data/langfuse/bootstrap.example.json`
   - If output has `unstable_evaluators_api=unsupported`, current Langfuse build lacks unstable evaluator API.
 
 ## Actions

@@ -64,12 +64,11 @@ Defaults:
 
 ```bash
 cp data/langfuse/bootstrap.example.json data/langfuse/bootstrap.json
+
 export LANGFUSE_BASE_URL=http://localhost:3000
 export LANGFUSE_PUBLIC_KEY=pk-00000000
 export LANGFUSE_SECRET_KEY=sk-00000000
-./scripts/bootstrap-langfuse-connections.sh data/langfuse/bootstrap.json
-./scripts/bootstrap-langfuse-evaluator.sh data/langfuse/bootstrap.json
-./scripts/verify-langfuse-llm-judge-workflow.sh data/langfuse/bootstrap.json
+./scripts/bootstrap-langfuse.sh data/langfuse/bootstrap.json
 ```
 
 Notes:
