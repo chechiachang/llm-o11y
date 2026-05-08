@@ -47,7 +47,7 @@
         "protocol": "http",
         "headers": {
           "Authorization": "env.LANGFUSE_OTEL_AUTH",
-          "x-langfuse-ingestion-version": "env.LANGFUSE_OTEL_INGESTION_VERSION"
+          "x-langfuse-ingestion-version": "4"
         }
       }
     }

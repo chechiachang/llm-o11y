@@ -16,13 +16,6 @@ Optional provider:
 export OPENAI_API_KEY=xxx
 ```
 
-Langfuse OTEL auth header for Bifrost (recommended: set in shell/.env, do not hardcode in JSON):
-
-```bash
-export LANGFUSE_OTEL_AUTH='Basic BASE64(pk:sk)'
-export LANGFUSE_OTEL_INGESTION_VERSION=4
-```
-
 ## Local E2E test: Bifrost -> LLM -> Langfuse observations
 
 Run services:
