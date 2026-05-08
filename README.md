@@ -16,6 +16,24 @@ Optional provider:
 export OPENAI_API_KEY=xxx
 ```
 
+## Tracing best-practice choices in this repo
+
+- Keep model + token + hierarchy via Bifrost OTEL plugin.
+- Keep secrets in env only (`LANGFUSE_OTEL_AUTH`), not committed JSON.
+- Keep ingestion version explicit (`x-langfuse-ingestion-version=4`).
+- Keep user prompt redaction in local CLI configs unless explicitly needed.
+
+## LLM CLI config examples
+
+- OpenCode example: `./opencode.json`
+- Codex CLI example: `./.codex/config.toml`
+
+Recommended:
+- keep local base URL = `http://localhost:8080/v1` (Bifrost)
+- keep secrets in env vars only
+
+---
+
 ## Local E2E test: Bifrost -> LLM -> Langfuse observations
 
 Run services:
@@ -64,24 +82,52 @@ export LANGFUSE_SECRET_KEY=sk-00000000
 ./scripts/bootstrap-langfuse.sh data/langfuse/bootstrap.json
 ```
 
+## Create dataset from observations (optional)
+
+```bash
+./scripts/create-langfuse-dataset-from-observations.sh my-dataset 50
+```
+
+Defaults:
+- reads `GENERATION` observations
+- uses observation `input` as dataset `input`
+- uses observation `output` as dataset `expectedOutput`
+- rerun is idempotent-ish: same dataset name is reused, existing `sourceObservationId` items are skipped
+
 Notes:
 - Bifrost OTEL config: `data/bifrost/config.json` (`plugins[].name="otel"`).
 - Langfuse blocks localhost/private URLs for managed LLM connections.
 - OTEL auth header is read from env: `LANGFUSE_OTEL_AUTH`.
 - If verify output has `unstable_evaluators_api=unsupported`, current Langfuse build lacks unstable evaluator API.
 
-## Tracing best-practice choices in this repo
+## Download observations JSON (local Langfuse, no email export)
 
-- Keep model + token + hierarchy via Bifrost OTEL plugin.
-- Keep secrets in env only (`LANGFUSE_OTEL_AUTH`), not committed JSON.
-- Keep ingestion version explicit (`x-langfuse-ingestion-version=4`).
-- Keep user prompt redaction in local CLI configs unless explicitly needed.
+```bash
+export LANGFUSE_BASE_URL=http://localhost:3000
+export LANGFUSE_PUBLIC_KEY=pk-00000000
+export LANGFUSE_SECRET_KEY=sk-00000000
 
-## LLM CLI config examples
+# by project name (from UI URL /project/<name>/observations)
+./scripts/download-langfuse-observations.sh chechia-project
+```
 
-- OpenCode example: `./opencode.json`
-- Codex CLI example: `./.codex/config.toml`
+Output file is saved under `./tmp/`.
 
-Recommended:
-- keep local base URL = `http://localhost:8080/v1` (Bifrost)
-- keep secrets in env vars only
+## Download dataset JSON
+
+```bash
+./scripts/download-langfuse-dataset.sh my-dataset
+```
+
+Output file is saved under `./tmp/`.
+
+## Run dataset experiment (reuse source trace/observation)
+
+```bash
+./scripts/run-langfuse-dataset-experiment.sh my-dataset my-run-name 50
+```
+
+Notes:
+- creates dataset run items via `/api/public/dataset-run-items`
+- uses each dataset item's `sourceObservationId` / `sourceTraceId`
+- skips items already in same run
