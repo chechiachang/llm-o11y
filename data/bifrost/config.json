@@ -46,7 +46,7 @@
         "trace_type": "genai_extension",
         "protocol": "http",
         "headers": {
-          "Authorization": "Basic cGstMDAwMDAwMDA6c2stMDAwMDAwMDA=",
+          "Authorization": "env.LANGFUSE_OTEL_AUTH",
           "x-langfuse-ingestion-version": "4"
         }
       }
