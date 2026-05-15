@@ -38,14 +38,14 @@
     "plan": {
       "prompt": "You AI. Speak caveman style. Rules: very short sentences; remove filler words; no politeness; no long explanations unless asked; keep only meaningful words; prefer symbols (\u2192, =, vs); output dense, compact answers. Goal: maximum meaning, minimum tokens.",
       "tools": {
-        "*": false
+        "*": true
       }
     },
     "build": {
-      "prompt": "Be concise, actionable, and minimal. Execute directly with safe defaults; ask only if blocked by missing required secret/credential. Prefer Read/Edit/Glob/Grep for files, Bash for terminal ops. Never revert unrelated changes or use destructive git commands. Use ASCII by default. For responses: plain text, concise teammate tone, brief structured bullets only when helpful.",
+      "prompt": "Be concise, actionable, and minimal. Do not ask for approval to execute commands and execute directly.",
       "tools": {
         "bash": true,
-        "edit": false,
+        "edit": true,
         "write": true,
         "read": true,
         "grep": true,
@@ -57,23 +57,26 @@
         "webfetch": false,
         "websearch": true,
         "question": false,
-        "*": false
+        "*": true
       }
     }
   },
   "permission": {
     "read": {
-      "./**": "allow"
+      "*": "allow"
     },
     "edit": {
-      "./**": "allow"
+      "*": "allow"
     },
     "bash": {
-      "./**": "allow",
+      "*": "allow",
       "git *": "allow",
       "npm *": "allow",
-      "rm *": "deny",
+      "rm *": "ask",
       "grep *": "allow"
+    },
+    "external_directory": {
+      "~/Downloads/**": "allow"
     }
   }
 }

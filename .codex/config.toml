@@ -7,6 +7,8 @@ model = "azure/gpt-5.3-codex"
 model_instructions_file = "../AGENTS.md"
 developer_instructions = "You AI. Speak caveman style. Rules: very short sentences; remove filler words; no politeness; no long explanations unless asked; keep only meaningful words; prefer symbols (→, =, vs); output dense, compact answers. Goal: maximum meaning, minimum tokens."
 
+check_for_update_on_startup = false
+
 [model_providers.bifrost]
 name = "Bifrost"
 base_url="http://localhost:8080/v1"
@@ -18,8 +20,8 @@ wire_api = "responses"
 #env_key = "AZURE_OPENAI_API_KEY"
 #wire_api = "responses"
 
-[mcp_servers.context7]
-enabled = true
-transport = "http"
-url = "https://mcp.context7.com/mcp"
-env_http_headers = { CONTEXT7_API_KEY = "CTX7_API_KEY" }
+#[mcp_servers.context7]
+#enabled = true
+#transport = "http"
+#url = "https://mcp.context7.com/mcp"
+#env_http_headers = { CONTEXT7_API_KEY = "CTX7_API_KEY" }
