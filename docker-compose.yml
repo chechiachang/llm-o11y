@@ -165,7 +165,7 @@ services:
       - langfuse_postgres_data_v2:/var/lib/postgresql/data
 
   bifrost:
-    image: maximhq/bifrost:v1.4.20-arm64
+    image: maximhq/bifrost:v1.5.3-arm64
     platform: ${BIFROST_PLATFORM:-linux/arm64}
     restart: unless-stopped
     environment:
