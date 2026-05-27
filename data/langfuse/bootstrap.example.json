@@ -6,7 +6,7 @@
       "secretKey": "env:AZURE_OPENAI_API_KEY",
       "baseURL": "https://your-resource.openai.azure.com/openai/deployments",
       "withDefaultModels": true,
-      "customModels": ["azure/gpt-5.4-mini"]
+      "customModels": ["azure/gpt-5.4-nano"]
     }
   ],
   "evaluator": {

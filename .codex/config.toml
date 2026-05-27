@@ -13,15 +13,3 @@ check_for_update_on_startup = false
 #name = "Bifrost"
 #base_url="http://localhost:8080/v1"
 #wire_api = "responses"
-
-#[model_providers.azure]
-#name = "Azure OpenAI"
-#base_url = "https://your-resource.openai.azure.com/openai/v1"
-#env_key = "AZURE_OPENAI_API_KEY"
-#wire_api = "responses"
-
-#[mcp_servers.context7]
-#enabled = true
-#transport = "http"
-#url = "https://mcp.context7.com/mcp"
-#env_http_headers = { CONTEXT7_API_KEY = "CTX7_API_KEY" }
