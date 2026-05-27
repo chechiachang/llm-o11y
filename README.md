@@ -5,7 +5,7 @@ LLM observability demo: Bifrost + Langfuse.
 ## Quick start
 
 ```bash
-export AZURE_ENDPOINT=https://your-resource.openai.azure.com/
+export AZURE_ENDPOINT=https://chechia-ws.services.ai.azure.com/
 export AZURE_OPENAI_API_KEY=xxx
 docker compose up -d postgres redis minio clickhouse langfuse-web langfuse-worker bifrost
 ```
@@ -45,8 +45,8 @@ docker compose up -d postgres redis minio clickhouse langfuse-web langfuse-worke
 Required env (Azure path):
 
 ```bash
+export AZURE_ENDPOINT=https://chechia-ws.services.ai.azure.com/
 export AZURE_OPENAI_API_KEY=xxx
-export AZURE_ENDPOINT=https://your-resource.openai.azure.com/
 ```
 
 Optional alternative provider:
