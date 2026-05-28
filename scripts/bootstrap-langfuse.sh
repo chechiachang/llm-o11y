@@ -12,8 +12,8 @@ need_cmd jq
 need_cmd curl
 
 BASE_URL="${LANGFUSE_BASE_URL:-http://localhost:3000}"
-PUBLIC_KEY="${LANGFUSE_PUBLIC_KEY:-pk-00000000}"
-SECRET_KEY="${LANGFUSE_SECRET_KEY:-sk-00000000}"
+PUBLIC_KEY="${LANGFUSE_PUBLIC_KEY:-pk}"
+SECRET_KEY="${LANGFUSE_SECRET_KEY:-sk}"
 HTTP_TIMEOUT="${LANGFUSE_HTTP_TIMEOUT:-30}"
 CONFIG_FILE="data/langfuse/bootstrap.json"
 for arg in "$@"; do

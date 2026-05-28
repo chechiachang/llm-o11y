@@ -17,7 +17,7 @@
 - MinIO bucket list: `curl -sS -o /dev/null -w '%{http_code}\n' -u 'chechia:password' http://localhost:9002/langfuse`
 - Redis set/get: `docker exec playgrounds-redis-1 redis-cli -a password SET test-key test-val && docker exec playgrounds-redis-1 redis-cli -a password GET test-key`
 - Postgres query: `docker exec playgrounds-postgres-1 psql -U postgres -d postgres -tAc 'SELECT 1'`
-- Langfuse auth (default keys): `curl -fsS -u 'pk-00000000:sk-00000000' http://localhost:3000/api/public/projects`
+- Langfuse auth (default keys): `curl -fsS -u 'pk:sk' http://localhost:3000/api/public/projects`
 - Langfuse worker health: `curl -fsS http://127.0.0.1:3030/api/public/health`
 - Bifrost chat completions: `curl -sS -o /dev/null -w '%{http_code}\n' http://localhost:8080/v1/chat/completions`
 

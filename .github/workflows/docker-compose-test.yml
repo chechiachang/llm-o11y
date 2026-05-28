@@ -44,8 +44,8 @@ jobs:
       AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       BIFROST_PLATFORM: linux/arm64
-      LANGFUSE_PUBLIC_KEY: pk-00000000
-      LANGFUSE_SECRET_KEY: sk-00000000
+      LANGFUSE_PUBLIC_KEY: pk
+      LANGFUSE_SECRET_KEY: sk
     steps:
       - uses: actions/checkout@v4
 
@@ -207,7 +207,7 @@ jobs:
         continue-on-error: true
         run: |
           HTTP_CODE=$(curl -sS -o /dev/null -w '%{http_code}' \
-            -u 'pk-00000000:sk-00000000' \
+            -u 'pk:sk' \
             http://localhost:3000/api/public/projects)
           echo "Langfuse auth response: $HTTP_CODE"
           if [ "$HTTP_CODE" != "200" ]; then

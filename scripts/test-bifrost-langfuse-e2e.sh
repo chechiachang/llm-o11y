@@ -28,8 +28,8 @@ require_env() {
 
 : "${BIFROST_BASE_URL:=http://localhost:8080}"
 : "${LANGFUSE_BASE_URL:=http://localhost:3000}"
-: "${LANGFUSE_PUBLIC_KEY:=pk-00000000}"
-: "${LANGFUSE_SECRET_KEY:=sk-00000000}"
+: "${LANGFUSE_PUBLIC_KEY:=pk}"
+: "${LANGFUSE_SECRET_KEY:=sk}"
 : "${BIFROST_MODEL:=azure/gpt-5.4-nano}" # must be provider/model. set "auto" to pick first model.
 : "${BIFROST_PROVIDER:=azure}" # azure | openai
 

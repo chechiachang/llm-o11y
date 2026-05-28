@@ -68,8 +68,8 @@ Checks:
 
 Defaults:
 - `BIFROST_MODEL=azure/gpt-5.4-nano` (`provider/model` format required)
-- `LANGFUSE_PUBLIC_KEY=pk-00000000`
-- `LANGFUSE_SECRET_KEY=sk-00000000`
+- `LANGFUSE_PUBLIC_KEY=pk`
+- `LANGFUSE_SECRET_KEY=sk`
 
 ## Langfuse bootstrap (optional)
 
@@ -77,8 +77,8 @@ Defaults:
 cp data/langfuse/bootstrap.example.json data/langfuse/bootstrap.json
 
 export LANGFUSE_BASE_URL=http://localhost:3000
-export LANGFUSE_PUBLIC_KEY=pk-00000000
-export LANGFUSE_SECRET_KEY=sk-00000000
+export LANGFUSE_PUBLIC_KEY=pk
+export LANGFUSE_SECRET_KEY=sk
 ./scripts/bootstrap-langfuse.sh data/langfuse/bootstrap.json
 ```
 
@@ -104,8 +104,8 @@ Notes:
 
 ```bash
 export LANGFUSE_BASE_URL=http://localhost:3000
-export LANGFUSE_PUBLIC_KEY=pk-00000000
-export LANGFUSE_SECRET_KEY=sk-00000000
+export LANGFUSE_PUBLIC_KEY=pk
+export LANGFUSE_SECRET_KEY=sk
 
 # by project name (from UI URL /project/<name>/observations)
 ./scripts/download-langfuse-observations.sh chechia-project
