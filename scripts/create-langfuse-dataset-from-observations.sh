@@ -16,11 +16,11 @@ PUBLIC_KEY="${LANGFUSE_PUBLIC_KEY:-pk}"
 SECRET_KEY="${LANGFUSE_SECRET_KEY:-sk}"
 HTTP_TIMEOUT="${LANGFUSE_HTTP_TIMEOUT:-30}"
 OBS_TYPE="${LANGFUSE_OBSERVATION_TYPE:-GENERATION}"
-OBS_ENV="${LANGFUSE_OBSERVATION_ENV:-}"
+OBS_ENV="${LANGFUSE_OBSERVATION_ENV:-default}"
 LIMIT="${LANGFUSE_DATASET_ITEM_LIMIT:-50}"
 START_PAGE="${LANGFUSE_OBSERVATION_START_PAGE:-1}"
 
-DATASET_NAME="${1:-}"
+DATASET_NAME="${1:-test}"
 if [[ "${DATASET_NAME}" == "" || "${DATASET_NAME}" == "-h" || "${DATASET_NAME}" == "--help" ]]; then
   echo "usage: $0 <dataset-name> [limit]"
   echo "env: LANGFUSE_OBSERVATION_TYPE=GENERATION|SPAN|EVENT"
@@ -152,25 +152,79 @@ while [[ "$added" -lt "$LIMIT" ]]; do
 
     item_payload="$RUN_DIR/item-$obs_id.json"
     jq -c --arg datasetName "$DATASET_NAME" '
-      {
-        datasetName: $datasetName,
-        input: .input,
-        expectedOutput: .output,
-        metadata: {
-          source: "observations",
-          observationId: .id,
-          traceId: .traceId,
-          observationName: .name,
-          observationType: .type,
-          observationEnvironment: .environment,
-          observationStartTime: .startTime,
-          observationEndTime: .endTime
-        },
-        sourceObservationId: .id,
-        sourceTraceId: .traceId
-      }
-      | with_entries(select(.value != null))
+      def nonempty_len_gt0:
+        (type == "array" and (length > 0))
+        or (type == "string" and (length > 0))
+        or (type == "object" and (length > 0));
+
+      def meaningful_content($v):
+        if ($v|type) == "string" then
+          $v
+        elif ($v|type) == "array" then
+          ($v | map(select((.content? // .) | nonempty_len_gt0)) | .[0].content? // .[0]? // "")
+        elif ($v|type) == "object" then
+          # Try common places where the assistant text lives.
+          ($v.content? // $v.text? // $v.output? // "")
+        else
+          ""
+        end;
+
+      def pick_input_output:
+        (
+          { in: (.input.content? // .input), out: (.output // .expectedOutput // "") }
+        ) as $io
+        | if ($io.in | nonempty_len_gt0) and ($io.out | nonempty_len_gt0) then
+            {
+              input: ($io.in | meaningful_content(.)),
+              expectedOutput: (
+                # Some observations store output as an array of message/tool records;
+                # pick the first non-empty assistant content.
+                if ($io.out|type) == "array" then
+                  ($io.out
+                    | map(select((.role? // .type?) == "assistant" and (.content? | nonempty_len_gt0)))
+                    | .[0].content? //
+                  ($io.out | map(select((.content? // .) | nonempty_len_gt0)) | .[0].content? // ""))
+                else
+                  ($io.out | meaningful_content(.))
+                end
+              )
+            }
+          else
+            empty
+          end;
+
+      pick_input_output
+      | (
+          # Final guard: expectedOutput must be non-empty string.
+          if (.expectedOutput|tostring|length) > 0 then
+            {
+          datasetName: $datasetName,
+          input: .input,
+          expectedOutput: .expectedOutput,
+          metadata: {
+            source: "observations",
+            observationId: .id,
+            traceId: .traceId,
+            observationName: .name,
+            observationType: .type,
+            observationEnvironment: .environment,
+            observationStartTime: .startTime,
+            observationEndTime: .endTime
+          },
+          sourceObservationId: .id,
+          sourceTraceId: .traceId
+            }
+          else
+            empty
+          end
+        )
     ' <<<"$obs" > "$item_payload"
+
+    # If jq decided the input/output are not meaningful, skip creating an item.
+    if [[ ! -s "$item_payload" ]] || ! jq -e '.input and .expectedOutput' "$item_payload" >/dev/null 2>&1; then
+      skipped_invalid=$((skipped_invalid + 1))
+      continue
+    fi
 
     CREATE_ITEM_HTTP="$({
       curl -sS \
